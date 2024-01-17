@@ -1,6 +1,7 @@
 package com.chatapp.backend.configuration;
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
@@ -37,7 +38,9 @@ public class SpringSecurityConfig {
                 );
          return http.build();
     }
-    private String jwtKey = "ETSIn1T-fHYCZOtzUE6UD9lw5DidE8TqUFtCYrF42H4";
+
+    @Value("${JWT_KEY}")
+    private String jwtKey;
     @Bean
     public JwtDecoder jwtDecoder() {
         SecretKeySpec secretKey = new SecretKeySpec(this.jwtKey.getBytes(), "HMACSHA256");
@@ -53,4 +56,6 @@ public class SpringSecurityConfig {
     public JwtEncoder jwtEncoder() {
         return new NimbusJwtEncoder(new ImmutableSecret<>(this.jwtKey.getBytes()));
     }
+
+
 }
