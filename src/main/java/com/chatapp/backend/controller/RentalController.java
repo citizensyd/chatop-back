@@ -21,18 +21,41 @@ public class RentalController {
 
     private final RentalService service;
 
+    /**
+     * Retrieves all rental objects.
+     *
+     * @return A ResponseEntity object containing a list of RentalDTO objects.
+     */
     @GetMapping("/")
     public ResponseEntity<List<RentalDTO>> getAll() {
         List<RentalDTO> rentals = service.getAllRentals();
         return ResponseEntity.ok(rentals);
     }
 
+    /**
+     * Retrieves a RentalDTO object by its ID.
+     *
+     * @param id The ID of the rental.
+     * @return A ResponseEntity object containing the RentalDTO object.
+     */
     @GetMapping("/{id}")
     public ResponseEntity<RentalDTO> getById(@PathVariable Long id) {
         RentalDTO rental = service.getRentalById(id);
         return ResponseEntity.ok(rental);
     }
 
+    /**
+     * Creates a new rental object.
+     *
+     * @param id The ID of the rental.
+     * @param name The name of the rental.
+     * @param surface The surface area of the rental.
+     * @param price The price of the rental.
+     * @param description The description of the rental.
+     * @param picture The picture of the rental.
+     * @return A ResponseEntity object containing the created RentalResponse object.
+     * @throws IOException If an input/output error occurs.
+     */
     @PostMapping("/{id}")
     public ResponseEntity<RentalResponse> create(
             @PathVariable Long id,
@@ -51,9 +74,17 @@ public class RentalController {
         return ResponseEntity.ok(service.createRental(request, picture));
     }
 
-
-
-
+    /**
+     * Updates a rental object identified by its ID.
+     *
+     * @param id          The ID of the rental.
+     * @param name        (Optional) The name of the rental.
+     * @param surface     (Optional) The surface area of the rental.
+     * @param price       (Optional) The price of the rental.
+     * @param description (Optional) The description of the rental.
+     * @param picture     (Optional) The picture of the rental.
+     * @return A ResponseEntity object containing the updated RentalResponse object.
+     */
     @PutMapping("/{id}")
     public ResponseEntity<RentalResponse> update(
             @PathVariable Long id,
@@ -73,6 +104,4 @@ public class RentalController {
 
         return ResponseEntity.ok(service.updateRental(id, request, picture));
     }
-
-
 }

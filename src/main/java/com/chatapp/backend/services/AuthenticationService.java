@@ -14,6 +14,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class AuthenticationService {
 
     private final UserRepository repository;
@@ -21,13 +22,15 @@ public class AuthenticationService {
     private final PasswordEncoder passwordEncoder;
 
     private final AuthenticationManager authenticationManager;
-    private JWTservice jwtService;
-    public AuthenticationService(UserRepository repository, PasswordEncoder passwordEncoder, AuthenticationManager authenticationManager, JWTservice jwtService) {
-        this.repository = repository;
-        this.passwordEncoder = passwordEncoder;
-        this.authenticationManager = authenticationManager;
-        this.jwtService = jwtService;
-    }
+
+    private final JWTservice jwtService;
+
+    /**
+     * Registers a new user.
+     *
+     * @param request The RegisterRequest object that contains the user's name, email, and password.
+     * @return AuthResponse The response object containing the generated JWT token.
+     */
     public AuthResponse register(RegisterRequest request) {
         var user = User.builder()
                 .username(request.getUsername())
@@ -42,6 +45,12 @@ public class AuthenticationService {
                 .build();
     }
 
+    /**
+     * Authenticates a user by checking their credentials and generates a JWT token.
+     *
+     * @param request The authentication request containing the user's email and password.
+     * @return The authentication response containing the generated JWT token.
+     */
     public AuthResponse authenticate(AuthRequest request) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(

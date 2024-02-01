@@ -25,6 +25,12 @@ public class LoginController {
 
     private final AuthenticationService service;
 
+    /**
+     * Logs in a user by authenticating their credentials and generating a JWT token.
+     *
+     * @param request The authentication request containing the user's email and password.
+     * @return A ResponseEntity containing the generated JWT token.
+     */
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> loginUser(
             @RequestBody AuthRequest request

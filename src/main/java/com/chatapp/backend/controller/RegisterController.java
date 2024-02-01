@@ -17,6 +17,12 @@ public class RegisterController {
 
     private final AuthenticationService service;
 
+    /**
+     * Registers a new user.
+     *
+     * @param request The RegisterRequest object that contains the user's name, email, and password.
+     * @return ResponseEntity<AuthResponse> The response entity containing the generated JWT token.
+     */
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(
             @RequestBody RegisterRequest request) {

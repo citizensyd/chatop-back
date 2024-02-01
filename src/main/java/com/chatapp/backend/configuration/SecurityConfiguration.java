@@ -19,6 +19,13 @@ public class SecurityConfiguration {
 
     private final AuthenticationProvider authenticationProvider;
 
+    /**
+     * Creates and configures a SecurityFilterChain object for HTTP security.
+     *
+     * @param http The HttpSecurity object used to configure security for requests.
+     * @return The created SecurityFilterChain object.
+     * @throws Exception if an error occurs during configuration.
+     */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http

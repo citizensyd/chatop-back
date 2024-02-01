@@ -26,19 +26,19 @@ import java.util.Map;
 import java.util.function.Function;
 
 /**
- * The JWTservice class handles the generation of JWT tokens.
+ * The Role enum represents the different roles a user can have.
+ * It can either be USER or ADMIN.
  */
 @Service
 public class JWTservice {
 
+    @Value("${JWT_KEY}")
+    private String secretKey;
 
-    private String secretKey = "5e1305721345a915133b670a562ae8ea123f4e6f923066fdbc39ca41f2031b80";
 
     public String extractEmail(String token) {
         return extractClaim(token, Claims::getSubject);
     }
-
-
 
     private Claims extractAllClaims(String token) {
         return Jwts

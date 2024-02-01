@@ -27,6 +27,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JWTservice jwtService;
 
+
+    private String extractJwtFromHeader(String authHeader) {
+        return authHeader.substring(7);
+    }
+
+    private UserDetails loadUserDetails(String userEmail) {
+        return this.userDetailsService.loadUserByUsername(userEmail);
+    }
+
     @Override
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
@@ -40,15 +49,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
             return;
         }
-        jwt = authHeader.substring(7);
-        System.out.println("ligne 42 Extracted JWT: " + jwt);
+        jwt = extractJwtFromHeader(authHeader);
         userEmail = jwtService.extractEmail(jwt);
-        System.out.println(userEmail);
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
+            UserDetails userDetails = loadUserDetails(userEmail);
             System.out.println(userDetails);
             if (jwtService.isTokenValid(jwt, userDetails)) {
-                System.out.println("isTokenValid");
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                         userDetails,
                         null,

@@ -10,13 +10,19 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/messages")
-
+@RequiredArgsConstructor
 public class MessageController {
 
-    @Autowired
-    private  MessagesService service;
+
+    private final MessagesService service;
 
 
+    /**
+     * Creates a new message.
+     *
+     * @param request The message request object.
+     * @return The ResponseEntity containing the message response object.
+     */
     @PostMapping()
     public ResponseEntity<MessageResponse> message(@RequestBody MessageRequest request) {
         MessageResponse response = service.createMessage(request);

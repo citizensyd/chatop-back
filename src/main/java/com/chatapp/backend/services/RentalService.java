@@ -66,7 +66,14 @@ public class RentalService {
         return Optional.empty();
     }
 
-
+    /**
+     * Creates a new rental object.
+     *
+     * @param request The RentalRequest object containing the details of the rental.
+     * @param file The picture file of the rental.
+     * @return The created RentalResponse object.
+     * @throws IOException If there is an input/output error.
+     */
     public RentalResponse createRental(RentalRequest request, MultipartFile file) throws IOException {
 
         byte[] pictureData = file.getBytes();
@@ -95,10 +102,18 @@ public class RentalService {
                 .id(Math.toIntExact(rental.getId()))
                 .status("Annonce créée avec succès")
                 .build();
-
-
     }
 
+    /**
+     * Updates a rental object identified by its ID.
+     *
+     * @param id               The ID of the rental.
+     * @param request          The RentalRequest object containing the updates for the rental.
+     * @param optionalPicture  (Optional) The updated picture of the rental.
+     * @return The updated RentalResponse object.
+     * @throws EntityNotFoundException If the rental with the specified ID is not found.
+     * @throws RuntimeException       If there is a failure updating the picture.
+     */
     public RentalResponse updateRental(Long id, RentalRequest request, Optional<MultipartFile> optionalPicture) {
         Rental rental = repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Location non trouvée avec l'id: " + id));
@@ -130,9 +145,6 @@ public class RentalService {
                 .status("Annonce mise à jour avec succès")
                 .build();
     }
-
-
-
 }
 
 

@@ -30,6 +30,12 @@ public class MessagesService {
 
 
 
+    /**
+     * Creates a new message.
+     *
+     * @param request The message request object.
+     * @return The message response object.
+     */
     public MessageResponse createMessage(MessageRequest request) {
         System.out.println("Service createMessage");
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
