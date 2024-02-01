@@ -28,6 +28,10 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
 	implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
 	implementation("com.auth0:java-jwt:4.4.0")
+	implementation("commons-io:commons-io:2.15.1")
+	implementation("io.jsonwebtoken:jjwt-api:0.11.5")
+	implementation("io.jsonwebtoken:jjwt-impl:0.11.5")
+	implementation("io.jsonwebtoken:jjwt-jackson:0.11.5")
 	implementation("org.springframework.boot:spring-boot-starter-validation")
 	compileOnly("org.projectlombok:lombok")
 	runtimeOnly("com.h2database:h2")
@@ -35,7 +39,7 @@ dependencies {
 	implementation("javax.validation:validation-api:2.0.1.Final")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("org.springframework.security:spring-security-test")
-	implementation("mysql:mysql-connector-java:8.0.28")
+	runtimeOnly("com.mysql:mysql-connector-j")
 }
 
 tasks.withType<Test> {
