@@ -15,9 +15,15 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 public class SecurityConfiguration {
 
-    private final JwtAuthenticationFilter jwtAuthFilter;
+   private final JwtAuthenticationFilter jwtAuthFilter;
 
     private final AuthenticationProvider authenticationProvider;
+
+  //  private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
+
+    private static final String[] AUTHENTICATION_NEEDED_ROUTES = {
+            "/api/auth/**",
+    };
 
     /**
      * Creates and configures a SecurityFilterChain object for HTTP security.
@@ -29,17 +35,20 @@ public class SecurityConfiguration {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
-                .csrf((csrf) -> csrf.disable())
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
                 .authorizeHttpRequests((authorize) -> authorize
-                        .requestMatchers("/api/auth/**")
+                        .requestMatchers(AUTHENTICATION_NEEDED_ROUTES)
                         .permitAll()
                         .anyRequest()
                         .authenticated()
                 )
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
-                .authenticationProvider(authenticationProvider)
+                .authenticationProvider(authenticationProvider) /*
+                .exceptionHandling((exceptions) -> exceptions
+                        .authenticationEntryPoint(customAuthenticationEntryPoint)
+                )*/
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }

@@ -1,6 +1,10 @@
 package com.chatapp.backend.configuration;
 
+import com.chatapp.backend.DTO.CustomErrorResponse;
+import com.chatapp.backend.exceptions.JwtAuthenticationException;
+import com.chatapp.backend.exceptions.TokenNotFoundException;
 import com.chatapp.backend.services.JWTservice;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -8,6 +12,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -18,6 +23,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -36,6 +43,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return this.userDetailsService.loadUserByUsername(userEmail);
     }
 
+    private static final String[] WHITELISTED_PATHS = {
+            "/api/auth/login",
+            "/api/auth/register"
+            // ... autres chemins whitelisted ...
+    };
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        String path = request.getRequestURI();
+        // Utilisez les mêmes chemins que ceux définis dans AUTHENTICATION_NEEDED_ROUTES
+        return Arrays.stream(WHITELISTED_PATHS).anyMatch(path::startsWith);
+    }
+
+    private String convertObjectToJson(Object object) throws IOException {
+        ObjectMapper objectMapper = new ObjectMapper();
+        return objectMapper.writeValueAsString(object);
+    }
+
     @Override
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
@@ -43,29 +68,50 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
         final String authHeader = request.getHeader("Authorization");
-        final String jwt;
-        final String userEmail;
-        if (authHeader == null || authHeader.startsWith("Bearer jwt") || !authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-        jwt = extractJwtFromHeader(authHeader);
-        userEmail = jwtService.extractEmail(jwt);
-        if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = loadUserDetails(userEmail);
-            System.out.println(userDetails);
-            if (jwtService.isTokenValid(jwt, userDetails)) {
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities()
-                );
-                authToken.setDetails(
-                        new WebAuthenticationDetailsSource().buildDetails(request)
-                );
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+        try {
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                String jwt = extractJwtFromHeader(authHeader);
+                try {
+                    String userEmail = jwtService.extractEmail(jwt);
+                    if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                        UserDetails userDetails = loadUserDetails(userEmail);
+                        if (jwtService.isTokenValid(jwt, userDetails)) {
+                            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                                    userDetails, null, userDetails.getAuthorities());
+                            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                            SecurityContextHolder.getContext().setAuthentication(authToken);
+                        } else {
+                            handleJwtErrorBad(response, "Bad request, user not retrieve with jwt provided");
+                            return;
+                        }
+                    }
+                } catch (Exception e) {
+                    handleJwtError(response, e.getMessage());
+                    return;
+                }
+            } else if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                handleJwtErrorBad(response, "Token is missing.");
+                return;
             }
+        } catch (Exception e) {
+            handleJwtError(response, "Invalid token.");
+            return;
         }
         filterChain.doFilter(request, response);
     }
+
+    private void handleJwtErrorBad(HttpServletResponse response, String message) throws IOException {
+        CustomErrorResponse errorResponse = new CustomErrorResponse(HttpStatus.BAD_REQUEST, message);
+        response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+        response.setContentType("application/json");
+        response.getWriter().write(convertObjectToJson(errorResponse));
+    }
+
+    private void handleJwtError(HttpServletResponse response, String message) throws IOException {
+        CustomErrorResponse errorResponse = new CustomErrorResponse(HttpStatus.UNAUTHORIZED, message);
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json");
+        response.getWriter().write(convertObjectToJson(errorResponse));
+    }
+
 }
