@@ -44,9 +44,28 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private static final String[] WHITELISTED_PATHS = {
-            "/api/auth/login",
-            "/api/auth/register"
-            // ... autres chemins whitelisted ...
+            "/api/auth/**",
+            "/api-docs",
+            "/swagger.html",
+            "/v3/api-docs/**",
+            "/swagger-ui/**",
+            "/swagger-ui-custom.html",
+            "/swagger",
+            "/authenticate",
+            "/swagger-resources/",
+            "/swagger-ui/",
+            "/v3/api-docs/",
+            "/api/v1/app/user/auth/",
+            "/swagger.html",
+            "/swagger-ui/index.html",
+            "/v3/api-docs",
+            "/v3/api-docs",
+            "/swagger-ui.html",
+            "/swagger-ui/**",
+            "/swagger-ui/index.html",
+            "/swagger-config/**",
+            "/v3/api-docs/**",
+            "/v3/api-docs/swagger-config"
     };
 
     @Override

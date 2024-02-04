@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -15,16 +16,40 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 public class SecurityConfiguration {
 
-   private final JwtAuthenticationFilter jwtAuthFilter;
+    private final JwtAuthenticationFilter jwtAuthFilter;
 
     private final AuthenticationProvider authenticationProvider;
 
-  //  private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
+    //  private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
 
-    private static final String[] AUTHENTICATION_NEEDED_ROUTES = {
+    private static final String[] NO_AUTHENTICATION = {
             "/api/auth/**",
+            "/authenticate",
+            "/swagger-resources/",
+            "/swagger-ui/",
+            "/v3/api-docs/",
+            "/api/v1/app/user/auth/",
+            "/v3/api-docs",
+            "/v3/api-docs",
+            "/v3/api-docs/**",
+            "/swagger-ui/**",
+            "/api-docs",
+            "/swagger.html",
+            "/swagger",
+            "/swagger-ui-custom.html",
+            "/swagger-ui/index.html",
+            "/swagger-ui.html",
+            "/swagger-ui/**",
+            "/swagger-ui/index.html",
+            "/swagger-config/**",
+            "/v3/api-docs/**",
+            "/v3/api-docs/swagger-config",
     };
 
+    @Bean
+    public WebSecurityCustomizer webSecurityCustomizer() {
+        return (web) -> web.ignoring().requestMatchers(NO_AUTHENTICATION);
+    }
     /**
      * Creates and configures a SecurityFilterChain object for HTTP security.
      *
@@ -40,7 +65,7 @@ public class SecurityConfiguration {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests((authorize) -> authorize
-                        .requestMatchers(AUTHENTICATION_NEEDED_ROUTES)
+                        .requestMatchers(NO_AUTHENTICATION)
                         .permitAll()
                         .anyRequest()
                         .authenticated()
