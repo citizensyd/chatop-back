@@ -6,7 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.security.Timestamp;
+import java.sql.Timestamp;
+import java.util.Date;
 
 @Data
 @Builder
@@ -17,7 +18,7 @@ import java.security.Timestamp;
 public class Rental {
 
     @Id
-    @Column(name = "id")
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private Integer id;
 
     @Column(name = "name")
@@ -29,22 +30,21 @@ public class Rental {
     @Column(name = "price")
     private Integer price;
 
-    @Column(name = "picture", length = 1000000)
-    @Lob
-    private byte[] picture;
+    @Column(name = "picture")
+    private String picture;
 
     @Column(name = "description", length = 2000)
     private String description;
 
     @Column(name = "created_at")
-    private Timestamp createdAt;
+    private Timestamp created_at;
 
     @Column(name = "updated_at")
-    private Timestamp updatedAt;
+    private Timestamp updated_at;
 
     @ManyToOne
     @JoinColumn(name = "owner_id", nullable = false, referencedColumnName = "id")
-    private User owner;
+    private User owner_id;
 
 }
 

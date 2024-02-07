@@ -3,13 +3,19 @@ package com.chatapp.backend.controller;
 import com.chatapp.backend.DTO.RentalDTO;
 import com.chatapp.backend.DTO.RentalRequest;
 import com.chatapp.backend.DTO.RentalResponse;
+import com.chatapp.backend.DTO.RentalsResponse;
 import com.chatapp.backend.services.RentalService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,10 +32,10 @@ public class RentalController {
      *
      * @return A ResponseEntity object containing a list of RentalDTO objects.
      */
-    @GetMapping("/")
-    public ResponseEntity<List<RentalDTO>> getAll() {
-        List<RentalDTO> rentals = service.getAllRentals();
-        return ResponseEntity.ok(rentals);
+    @GetMapping("")
+    public ResponseEntity<RentalsResponse> getAll() {
+        RentalsResponse rentalsResponse = service.getAllRentals();
+        return ResponseEntity.ok(rentalsResponse);
     }
 
     /**
@@ -44,10 +50,10 @@ public class RentalController {
         return ResponseEntity.ok(rental);
     }
 
+
     /**
      * Creates a new rental object.
      *
-     * @param id The ID of the rental.
      * @param name The name of the rental.
      * @param surface The surface area of the rental.
      * @param price The price of the rental.
@@ -56,21 +62,18 @@ public class RentalController {
      * @return A ResponseEntity object containing the created RentalResponse object.
      * @throws IOException If an input/output error occurs.
      */
-    @PostMapping("/{id}")
+    @PostMapping("/create")
     public ResponseEntity<RentalResponse> create(
-            @PathVariable Long id,
             @RequestParam("name") String name,
             @RequestParam("surface") int surface,
             @RequestParam("price") int price,
             @RequestParam("description") String description,
             @RequestPart("picture") MultipartFile picture) throws IOException {
         RentalRequest request = new RentalRequest();
-        request.setId(id);
         request.setName(name);
         request.setSurface(surface);
         request.setPrice(price);
         request.setDescription(description);
-        request.setId(id);
         return ResponseEntity.ok(service.createRental(request, picture));
     }
 

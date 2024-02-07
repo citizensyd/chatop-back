@@ -2,7 +2,8 @@ package com.chatapp.backend.DTO;
 
 import lombok.Data;
 
-import java.security.Timestamp;
+import java.sql.Timestamp;
+
 
 @Data
 public class RentalDTO {
@@ -11,11 +12,11 @@ public class RentalDTO {
     private String name;
     private Integer surface;
     private Integer price;
-    private byte[] picture;
+    private String picture;
     private String description;
-    private Timestamp createdAt;
-    private Timestamp updatedAt;
-    private Integer ownerId;
+    private Timestamp created_at;
+    private Timestamp updated_at;
+    private Integer owner_id;
 
     public RentalDTO() {
     }

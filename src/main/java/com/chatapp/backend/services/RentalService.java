@@ -1,23 +1,28 @@
 package com.chatapp.backend.services;
 
-import com.chatapp.backend.DTO.GetAllRentals;
-import com.chatapp.backend.DTO.RentalDTO;
-import com.chatapp.backend.DTO.RentalRequest;
-import com.chatapp.backend.DTO.RentalResponse;
+import com.chatapp.backend.DTO.*;
 import com.chatapp.backend.entity.Rental;
 import com.chatapp.backend.entity.User;
 import com.chatapp.backend.repository.RentalRepository;
 import com.chatapp.backend.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.io.FileUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -39,16 +44,22 @@ public class RentalService {
         dto.setPrice(rental.getPrice());
         dto.setPicture(rental.getPicture());
         dto.setDescription(rental.getDescription());
-        dto.setCreatedAt(rental.getCreatedAt());
-        dto.setUpdatedAt(rental.getUpdatedAt());
-        dto.setOwnerId(rental.getOwner().getId());
+        dto.setOwner_id(rental.getOwner_id().getId());
+        dto.setCreated_at(rental.getCreated_at());
+        dto.setUpdated_at(rental.getUpdated_at());
         return dto;
     }
 
-    public List<RentalDTO> getAllRentals() {
+    public RentalsResponse getAllRentals() {
         List<Rental> rentals = repository.findAll();
-        return rentals.stream().map(this::convertToDTO).collect(Collectors.toList());
+        List<RentalDTO> rentalDTOs = rentals.stream().map(this::convertToDTO).collect(Collectors.toList());
+
+        RentalsResponse response = new RentalsResponse();
+        response.setRentals(rentalDTOs);
+
+        return response;
     }
+
 
     public RentalDTO getRentalById(Long id) {
         return repository.findById(id)
@@ -66,6 +77,8 @@ public class RentalService {
         return Optional.empty();
     }
 
+    @Value("${app.upload.dir}")
+    private String uploadDir;
     /**
      * Creates a new rental object.
      *
@@ -76,33 +89,59 @@ public class RentalService {
      */
     public RentalResponse createRental(RentalRequest request, MultipartFile file) throws IOException {
 
-        byte[] pictureData = file.getBytes();
-
         Optional<User> optionalAppUser = getAuthenticatedUser();
         if (!optionalAppUser.isPresent()) {
             return RentalResponse.builder()
-                    .status("Utilisateur non trouvé")
+                    .message("Utilisateur non trouvé")
                     .build();
         }
         User appUser = optionalAppUser.get();
+        LocalDateTime now = LocalDateTime.now();
+        LocalDate date = now.toLocalDate();
+        Timestamp timestamp = Timestamp.valueOf(now);
+
+        // Récupère le chemin du dossier de destination à partir de la configuration
+        String repertoireImage = this.uploadDir;
+        System.out.println(this.uploadDir);
+        File repertoire = new File(repertoireImage);
+
+        // Génère un nom de fichier unique (par exemple, basé sur la date actuelle)
+        String nouveauNom = date + "." + file.getOriginalFilename();
+        System.out.println(nouveauNom);
+
+        String newUploadDir = "/static/images";
+        String filePath = newUploadDir + "/" + nouveauNom;
+
+        File fichierDuServeur = new File(repertoire, nouveauNom);
+
+        System.out.println(filePath);
+
+        // Enregistre le fichier dans le dossier de destination
+        try {
+            FileUtils.writeByteArrayToFile(fichierDuServeur, file.getBytes());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("fichier enregistré");
 
         var rental = Rental.builder()
-                .id(Math.toIntExact(request.getId()))
                 .name(request.getName())
                 .surface(request.getSurface())
                 .price(request.getPrice())
-                .picture(pictureData)
+                .picture(filePath) // Utilise le chemin complet du fichier
                 .description(request.getDescription())
-                .owner(appUser)
+                .owner_id(appUser)
+                .created_at(timestamp)
+                .updated_at(timestamp)
                 .build();
-
+        System.out.println(rental);
         this.repository.save(rental);
 
         return RentalResponse.builder()
-                .id(Math.toIntExact(rental.getId()))
-                .status("Annonce créée avec succès")
+                .message("Annonce créée avec succès")
                 .build();
     }
+
 
     /**
      * Updates a rental object identified by its ID.
@@ -130,9 +169,23 @@ public class RentalService {
         if (request.getDescription() != null && !request.getDescription().isEmpty()) {
             rental.setDescription(request.getDescription());
         }
+
         optionalPicture.ifPresent(picture -> {
             try {
-                rental.setPicture(picture.getBytes());
+                // Récupère le chemin du dossier de destination à partir de la configuration
+                String uploadDir = this.uploadDir;
+
+                // Génère un nom de fichier unique (par exemple, basé sur la date actuelle)
+                String uniqueFileName = LocalDateTime.now().toString() + "_" + picture.getOriginalFilename();
+
+                // Construit le chemin complet du fichier
+                String filePath = uploadDir + File.separator + uniqueFileName;
+
+                // Enregistre la nouvelle image dans le dossier de destination
+                Files.write(Paths.get(filePath), picture.getBytes());
+
+                // Met à jour le chemin de l'image dans l'objet Rental
+                rental.setPicture(filePath);
             } catch (IOException e) {
                 throw new RuntimeException("Échec de la mise à jour de l'image", e);
             }
@@ -141,10 +194,10 @@ public class RentalService {
         repository.save(rental);
 
         return RentalResponse.builder()
-                .id(Math.toIntExact(rental.getId()))
-                .status("Annonce mise à jour avec succès")
+                .message("Annonce mise à jour avec succès")
                 .build();
     }
+
 }
 
 

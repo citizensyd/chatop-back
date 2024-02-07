@@ -24,6 +24,9 @@ public class SecurityConfiguration {
 
     private static final String[] NO_AUTHENTICATION = {
             "/api/auth/**",
+            "/api/auth/login",
+            "/static/images/**",
+            "/api/auth/register",
             "/authenticate",
             "/swagger-resources/",
             "/swagger-ui/",

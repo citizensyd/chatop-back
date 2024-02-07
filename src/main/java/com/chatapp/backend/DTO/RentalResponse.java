@@ -11,7 +11,5 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class RentalResponse {
 
-    private Integer id;
-
-    private String status;
+    private String message;
 }

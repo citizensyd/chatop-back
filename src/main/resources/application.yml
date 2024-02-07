@@ -5,6 +5,8 @@ logging:
         security: DEBUG
         boot:
           autoconfigure: ERROR
+server:
+  port: 3001
 
 spring:
   datasource:
@@ -23,5 +25,14 @@ spring:
     database-platform: org.hibernate.dialect.MySQLDialect
   config:
     import:
+  servlet:
+    multipart:
+      location: public/images
+app:
+  upload:
+    dir: chatop/src/main/resources/static/images
+
+
+
 
 
