@@ -46,7 +46,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final String[] WHITELISTED_PATHS = {
             "/api/auth/**",
             "/api/auth/register",
-            "/static/images/**",
+            "/images/**",
             "/api-docs",
             "/api/auth/login",
             "/swagger.html",

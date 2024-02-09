@@ -24,6 +24,7 @@ import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -33,6 +34,7 @@ public class RentalService {
 
     private final RentalRepository repository;
     private final UserRepository userRepository;
+    private final CloudinaryService cloudinaryService;
 
     // Pas besoin de constructeur explicite ici grâce à @RequiredArgsConstructor
 
@@ -77,17 +79,38 @@ public class RentalService {
         return Optional.empty();
     }
 
-    @Value("${app.upload.dir}")
-    private String uploadDir;
     /**
-     * Creates a new rental object.
+     * Uploads a file and returns the URL of the uploaded file.
+     *
+     * @param file The file to be uploaded.
+     * @return The URL of the uploaded file.
+     */
+    public String uploadFileAndReturnURL(MultipartFile file) {
+        try {
+            // Utilise le service Cloudinary pour télécharger le fichier
+            Map uploadResult = cloudinaryService.uploadFile(file);
+
+            // Récupère l'URL de l'image téléchargée à partir du résultat
+            String uploadedImageUrl = (String) uploadResult.get("url");
+            System.out.println("Image téléchargée avec succès: " + uploadedImageUrl);
+
+            return uploadedImageUrl; // Retourne l'URL de l'image
+        } catch (IOException e) {
+            e.printStackTrace();
+            return "Erreur lors du téléchargement de l'image";
+        }
+    }
+
+    /**
+     * Creates a rental based on the provided rental request and file.
      *
      * @param request The RentalRequest object containing the details of the rental.
-     * @param file The picture file of the rental.
-     * @return The created RentalResponse object.
-     * @throws IOException If there is an input/output error.
+     * @param file    The file to be uploaded and utilized for the rental.
+     * @return The RentalResponse object indicating the status of the operation.
+     * @throws IOException If there is an error during file upload.
      */
     public RentalResponse createRental(RentalRequest request, MultipartFile file) throws IOException {
+
 
         Optional<User> optionalAppUser = getAuthenticatedUser();
         if (!optionalAppUser.isPresent()) {
@@ -100,35 +123,14 @@ public class RentalService {
         LocalDate date = now.toLocalDate();
         Timestamp timestamp = Timestamp.valueOf(now);
 
-        // Récupère le chemin du dossier de destination à partir de la configuration
-        String repertoireImage = this.uploadDir;
-        System.out.println(this.uploadDir);
-        File repertoire = new File(repertoireImage);
+        String uploadedImageUrl = uploadFileAndReturnURL(file);
 
-        // Génère un nom de fichier unique (par exemple, basé sur la date actuelle)
-        String nouveauNom = date + "." + file.getOriginalFilename();
-        System.out.println(nouveauNom);
-
-        String newUploadDir = "/static/images";
-        String filePath = newUploadDir + "/" + nouveauNom;
-
-        File fichierDuServeur = new File(repertoire, nouveauNom);
-
-        System.out.println(filePath);
-
-        // Enregistre le fichier dans le dossier de destination
-        try {
-            FileUtils.writeByteArrayToFile(fichierDuServeur, file.getBytes());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        System.out.println("fichier enregistré");
 
         var rental = Rental.builder()
                 .name(request.getName())
                 .surface(request.getSurface())
                 .price(request.getPrice())
-                .picture(filePath) // Utilise le chemin complet du fichier
+                .picture(uploadedImageUrl) // Utilise le chemin complet du fichier
                 .description(request.getDescription())
                 .owner_id(appUser)
                 .created_at(timestamp)
@@ -146,12 +148,12 @@ public class RentalService {
     /**
      * Updates a rental object identified by its ID.
      *
-     * @param id               The ID of the rental.
-     * @param request          The RentalRequest object containing the updates for the rental.
-     * @param optionalPicture  (Optional) The updated picture of the rental.
+     * @param id              The ID of the rental.
+     * @param request         The RentalRequest object containing the updates for the rental.
+     * @param optionalPicture (Optional) The updated picture of the rental.
      * @return The updated RentalResponse object.
      * @throws EntityNotFoundException If the rental with the specified ID is not found.
-     * @throws RuntimeException       If there is a failure updating the picture.
+     * @throws RuntimeException        If there is a failure updating the picture.
      */
     public RentalResponse updateRental(Long id, RentalRequest request, Optional<MultipartFile> optionalPicture) {
         Rental rental = repository.findById(id)
@@ -172,32 +174,36 @@ public class RentalService {
 
         optionalPicture.ifPresent(picture -> {
             try {
-                // Récupère le chemin du dossier de destination à partir de la configuration
-                String uploadDir = this.uploadDir;
+                // Utilise le service Cloudinary pour télécharger le fichier et retourne une Map avec les résultats
+                Map uploadResult = cloudinaryService.uploadFile(picture);
+                String uploadedImageUrl = (String) uploadResult.get("url"); // Récupère l'URL depuis la Map
 
-                // Génère un nom de fichier unique (par exemple, basé sur la date actuelle)
-                String uniqueFileName = LocalDateTime.now().toString() + "_" + picture.getOriginalFilename();
-
-                // Construit le chemin complet du fichier
-                String filePath = uploadDir + File.separator + uniqueFileName;
-
-                // Enregistre la nouvelle image dans le dossier de destination
-                Files.write(Paths.get(filePath), picture.getBytes());
-
-                // Met à jour le chemin de l'image dans l'objet Rental
-                rental.setPicture(filePath);
+                // Vérifie que l'URL de l'image est récupérée correctement
+                if (uploadedImageUrl != null && !uploadedImageUrl.isEmpty()) {
+                    // Met à jour le chemin de l'image dans l'objet Rental avec l'URL de l'image Cloudinary
+                    rental.setPicture(uploadedImageUrl);
+                    System.out.println("Image mise à jour avec succès: " + uploadedImageUrl);
+                } else {
+                    // Gérer l'erreur d'upload ici
+                    System.out.println("Échec du téléchargement de l'image sur Cloudinary.");
+                }
             } catch (IOException e) {
                 throw new RuntimeException("Échec de la mise à jour de l'image", e);
             }
         });
-
         repository.save(rental);
 
         return RentalResponse.builder()
                 .message("Annonce mise à jour avec succès")
                 .build();
+
+
     }
 
+    ;
+
 }
+
+
 
 
