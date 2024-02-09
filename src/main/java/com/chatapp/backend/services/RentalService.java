@@ -123,7 +123,10 @@ public class RentalService {
         LocalDate date = now.toLocalDate();
         Timestamp timestamp = Timestamp.valueOf(now);
 
-        String uploadedImageUrl = uploadFileAndReturnURL(file);
+        String uploadedImageUrl = null;
+        if(!file.isEmpty()){
+            uploadedImageUrl = uploadFileAndReturnURL(file);
+        }
 
 
         var rental = Rental.builder()

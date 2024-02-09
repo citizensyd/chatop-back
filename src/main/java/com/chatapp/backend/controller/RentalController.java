@@ -32,7 +32,7 @@ public class RentalController {
      *
      * @return A ResponseEntity object containing a list of RentalDTO objects.
      */
-    @GetMapping("/")
+    @GetMapping("")
     public ResponseEntity<RentalsResponse> getAll() {
         RentalsResponse rentalsResponse = service.getAllRentals();
         return ResponseEntity.ok(rentalsResponse);
@@ -62,7 +62,7 @@ public class RentalController {
      * @return A ResponseEntity object containing the created RentalResponse object.
      * @throws IOException If an input/output error occurs.
      */
-    @PostMapping("/create")
+    @PostMapping("/{id}")
     public ResponseEntity<RentalResponse> create(
             @RequestParam("name") String name,
             @RequestParam("surface") int surface,
