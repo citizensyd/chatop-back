@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class AuthRequest {
     @NotBlank(message = "Email is required")
-    private String email;
+    private String login;
     @NotBlank(message = "Password is required")
     private String password;
 

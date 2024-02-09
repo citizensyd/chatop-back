@@ -82,7 +82,7 @@ public class AuthenticationService {
         try {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
-                            request.getEmail(),
+                            request.getLogin(),
                             request.getPassword()
                     )
             );
@@ -90,8 +90,8 @@ public class AuthenticationService {
             throw new InvalidCredentialsException("Invalid email or password.");
         }
 
-        User user = repository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + request.getEmail()));
+        User user = repository.findByEmail(request.getLogin())
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + request.getLogin()));
 
         var jwtToken = jwtService.generateToken(user);
         return AuthResponse.builder()
