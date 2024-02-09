@@ -62,7 +62,7 @@ public class RentalController {
      * @return A ResponseEntity object containing the created RentalResponse object.
      * @throws IOException If an input/output error occurs.
      */
-    @PostMapping("/{id}")
+    @PostMapping("")
     public ResponseEntity<RentalResponse> create(
             @RequestParam("name") String name,
             @RequestParam("surface") int surface,
