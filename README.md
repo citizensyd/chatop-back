@@ -88,7 +88,7 @@ JWT_KEY=your sha 256 key
 CLOUDINARY_CLOUD_NAME=your cloudinary
 CLOUDINARY_API_KEY=your api key
 CLOUDINARY_API_SECRET=your api secret
-
+```
 ---
 
 ## 🤝 Contributing
