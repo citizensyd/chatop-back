@@ -1,24 +1,30 @@
 package com.chatapp.backend.services;
 
-import com.chatapp.backend.DTO.GetAllRentals;
-import com.chatapp.backend.DTO.RentalDTO;
-import com.chatapp.backend.DTO.RentalRequest;
-import com.chatapp.backend.DTO.RentalResponse;
+import com.chatapp.backend.DTO.*;
 import com.chatapp.backend.entity.Rental;
 import com.chatapp.backend.entity.User;
 import com.chatapp.backend.repository.RentalRepository;
 import com.chatapp.backend.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.io.FileUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -28,6 +34,7 @@ public class RentalService {
 
     private final RentalRepository repository;
     private final UserRepository userRepository;
+    private final CloudinaryService cloudinaryService;
 
     // Pas besoin de constructeur explicite ici grâce à @RequiredArgsConstructor
 
@@ -39,16 +46,22 @@ public class RentalService {
         dto.setPrice(rental.getPrice());
         dto.setPicture(rental.getPicture());
         dto.setDescription(rental.getDescription());
-        dto.setCreatedAt(rental.getCreatedAt());
-        dto.setUpdatedAt(rental.getUpdatedAt());
-        dto.setOwnerId(rental.getOwner().getId());
+        dto.setOwner_id(rental.getOwner_id().getId());
+        dto.setCreated_at(rental.getCreated_at());
+        dto.setUpdated_at(rental.getUpdated_at());
         return dto;
     }
 
-    public List<RentalDTO> getAllRentals() {
+    public RentalsResponse getAllRentals() {
         List<Rental> rentals = repository.findAll();
-        return rentals.stream().map(this::convertToDTO).collect(Collectors.toList());
+        List<RentalDTO> rentalDTOs = rentals.stream().map(this::convertToDTO).collect(Collectors.toList());
+
+        RentalsResponse response = new RentalsResponse();
+        response.setRentals(rentalDTOs);
+
+        return response;
     }
+
 
     public RentalDTO getRentalById(Long id) {
         return repository.findById(id)
@@ -67,52 +80,80 @@ public class RentalService {
     }
 
     /**
-     * Creates a new rental object.
+     * Uploads a file and returns the URL of the uploaded file.
+     *
+     * @param file The file to be uploaded.
+     * @return The URL of the uploaded file.
+     */
+    public String uploadFileAndReturnURL(MultipartFile file) {
+        try {
+            // Utilise le service Cloudinary pour télécharger le fichier
+            Map uploadResult = cloudinaryService.uploadFile(file);
+
+            // Récupère l'URL de l'image téléchargée à partir du résultat
+            String uploadedImageUrl = (String) uploadResult.get("url");
+            System.out.println("Image téléchargée avec succès: " + uploadedImageUrl);
+
+            return uploadedImageUrl; // Retourne l'URL de l'image
+        } catch (IOException e) {
+            e.printStackTrace();
+            return "Erreur lors du téléchargement de l'image";
+        }
+    }
+
+    /**
+     * Creates a rental based on the provided rental request and file.
      *
      * @param request The RentalRequest object containing the details of the rental.
-     * @param file The picture file of the rental.
-     * @return The created RentalResponse object.
-     * @throws IOException If there is an input/output error.
+     * @param file    The file to be uploaded and utilized for the rental.
+     * @return The RentalResponse object indicating the status of the operation.
+     * @throws IOException If there is an error during file upload.
      */
     public RentalResponse createRental(RentalRequest request, MultipartFile file) throws IOException {
 
-        byte[] pictureData = file.getBytes();
 
         Optional<User> optionalAppUser = getAuthenticatedUser();
         if (!optionalAppUser.isPresent()) {
             return RentalResponse.builder()
-                    .status("Utilisateur non trouvé")
+                    .message("Utilisateur non trouvé")
                     .build();
         }
         User appUser = optionalAppUser.get();
+        LocalDateTime now = LocalDateTime.now();
+        LocalDate date = now.toLocalDate();
+        Timestamp timestamp = Timestamp.valueOf(now);
+
+        String uploadedImageUrl = uploadFileAndReturnURL(file);
+
 
         var rental = Rental.builder()
-                .id(Math.toIntExact(request.getId()))
                 .name(request.getName())
                 .surface(request.getSurface())
                 .price(request.getPrice())
-                .picture(pictureData)
+                .picture(uploadedImageUrl) // Utilise le chemin complet du fichier
                 .description(request.getDescription())
-                .owner(appUser)
+                .owner_id(appUser)
+                .created_at(timestamp)
+                .updated_at(timestamp)
                 .build();
-
+        System.out.println(rental);
         this.repository.save(rental);
 
         return RentalResponse.builder()
-                .id(Math.toIntExact(rental.getId()))
-                .status("Annonce créée avec succès")
+                .message("Annonce créée avec succès")
                 .build();
     }
+
 
     /**
      * Updates a rental object identified by its ID.
      *
-     * @param id               The ID of the rental.
-     * @param request          The RentalRequest object containing the updates for the rental.
-     * @param optionalPicture  (Optional) The updated picture of the rental.
+     * @param id              The ID of the rental.
+     * @param request         The RentalRequest object containing the updates for the rental.
+     * @param optionalPicture (Optional) The updated picture of the rental.
      * @return The updated RentalResponse object.
      * @throws EntityNotFoundException If the rental with the specified ID is not found.
-     * @throws RuntimeException       If there is a failure updating the picture.
+     * @throws RuntimeException        If there is a failure updating the picture.
      */
     public RentalResponse updateRental(Long id, RentalRequest request, Optional<MultipartFile> optionalPicture) {
         Rental rental = repository.findById(id)
@@ -130,21 +171,39 @@ public class RentalService {
         if (request.getDescription() != null && !request.getDescription().isEmpty()) {
             rental.setDescription(request.getDescription());
         }
+
         optionalPicture.ifPresent(picture -> {
             try {
-                rental.setPicture(picture.getBytes());
+                // Utilise le service Cloudinary pour télécharger le fichier et retourne une Map avec les résultats
+                Map uploadResult = cloudinaryService.uploadFile(picture);
+                String uploadedImageUrl = (String) uploadResult.get("url"); // Récupère l'URL depuis la Map
+
+                // Vérifie que l'URL de l'image est récupérée correctement
+                if (uploadedImageUrl != null && !uploadedImageUrl.isEmpty()) {
+                    // Met à jour le chemin de l'image dans l'objet Rental avec l'URL de l'image Cloudinary
+                    rental.setPicture(uploadedImageUrl);
+                    System.out.println("Image mise à jour avec succès: " + uploadedImageUrl);
+                } else {
+                    // Gérer l'erreur d'upload ici
+                    System.out.println("Échec du téléchargement de l'image sur Cloudinary.");
+                }
             } catch (IOException e) {
                 throw new RuntimeException("Échec de la mise à jour de l'image", e);
             }
         });
-
         repository.save(rental);
 
         return RentalResponse.builder()
-                .id(Math.toIntExact(rental.getId()))
-                .status("Annonce mise à jour avec succès")
+                .message("Annonce mise à jour avec succès")
                 .build();
+
+
     }
+
+    ;
+
 }
+
+
 
 

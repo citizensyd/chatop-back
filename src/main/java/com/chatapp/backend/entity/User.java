@@ -6,7 +6,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.security.Timestamp;
+import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.List;
 
@@ -23,8 +23,8 @@ public class User implements UserDetails {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Integer id;
 
-    @Column(name = "username")
-    private String username;
+    @Column(name = "name")
+    private String name;
 
     @Column(name = "email", unique = true)
     private String email;
@@ -33,10 +33,10 @@ public class User implements UserDetails {
     private String password;
 
     @Column(name = "created_at")
-    private Timestamp createdAt;
+    private Timestamp created_at;
 
     @Column(name = "updated_at")
-    private Timestamp updatedAt;
+    private Timestamp updated_at;
 
     @Enumerated(EnumType.STRING)
     private Role role;
@@ -53,7 +53,7 @@ public class User implements UserDetails {
 
 
     public String getUsernameActual() {
-        return username;
+        return name;
     }
     @Override
     public String getUsername() {

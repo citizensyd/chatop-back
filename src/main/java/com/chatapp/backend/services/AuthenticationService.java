@@ -19,6 +19,9 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+
 
 @Service
 @RequiredArgsConstructor
@@ -31,6 +34,9 @@ public class AuthenticationService {
     private final AuthenticationManager authenticationManager;
 
     private final JWTservice jwtService;
+
+    LocalDateTime now = LocalDateTime.now();
+    Timestamp timestamp = Timestamp.valueOf(now);
 
     /**
      * Registers a new user.
@@ -47,9 +53,11 @@ public class AuthenticationService {
 
         try {
             var user = User.builder()
-                    .username(request.getUsername())
+                    .name(request.getName())
                     .email(request.getEmail())
                     .password(passwordEncoder.encode(request.getPassword()))
+                    .created_at(timestamp)
+                    .updated_at(timestamp)
                     .role(Role.USER)
                     .build();
             repository.save(user);

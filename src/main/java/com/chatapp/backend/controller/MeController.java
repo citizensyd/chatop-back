@@ -33,8 +33,10 @@ public class MeController {
         }
 
         Map<String, Object> userDetails = new HashMap<>();
-        userDetails.put("username", authenticatedUser.getUsernameActual());
+        userDetails.put("name", authenticatedUser.getName());
         userDetails.put("email", authenticatedUser.getEmail());
+        userDetails.put("created_at", authenticatedUser.getCreated_at());
+        userDetails.put("updated_at", authenticatedUser.getUpdated_at());
 
         return ResponseEntity.ok(userDetails);
     }

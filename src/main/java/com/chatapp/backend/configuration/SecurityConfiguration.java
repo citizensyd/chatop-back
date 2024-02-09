@@ -24,6 +24,9 @@ public class SecurityConfiguration {
 
     private static final String[] NO_AUTHENTICATION = {
             "/api/auth/**",
+            "/api/auth/login",
+            "/images/**",
+            "/api/auth/register",
             "/authenticate",
             "/swagger-resources/",
             "/swagger-ui/",
@@ -46,10 +49,6 @@ public class SecurityConfiguration {
             "/v3/api-docs/swagger-config",
     };
 
-    @Bean
-    public WebSecurityCustomizer webSecurityCustomizer() {
-        return (web) -> web.ignoring().requestMatchers(NO_AUTHENTICATION);
-    }
     /**
      * Creates and configures a SecurityFilterChain object for HTTP security.
      *
