@@ -32,7 +32,7 @@ public class RentalController {
      *
      * @return A ResponseEntity object containing a list of RentalDTO objects.
      */
-    @GetMapping("")
+    @GetMapping("/")
     public ResponseEntity<RentalsResponse> getAll() {
         RentalsResponse rentalsResponse = service.getAllRentals();
         return ResponseEntity.ok(rentalsResponse);
