@@ -27,9 +27,6 @@ public class MessagesService {
     private final UserRepository userRepository;
     private final RentalRepository rentalRepository;
 
-
-
-
     /**
      * Creates a new message.
      *
@@ -37,7 +34,6 @@ public class MessagesService {
      * @return The message response object.
      */
     public MessageResponse createMessage(MessageRequest request) {
-        System.out.println("Service createMessage");
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
@@ -48,8 +44,6 @@ public class MessagesService {
                         .build();
             }
             User appUser = optionalAppUser.get();
-            System.out.println("ligne 41 message Service");
-            System.out.println(appUser);
             Optional<Rental> optionalRental = rentalRepository.findById(Math.toIntExact(request.getRental_id()));
             if (!optionalRental.isPresent()) {
                 return MessageResponse.builder()
@@ -57,8 +51,6 @@ public class MessagesService {
                         .build();
             }
             Rental rental = optionalRental.get();
-            System.out.println("ligne 49 rental Service");
-            System.out.println(rental);
             var message = Message.builder()
                     .message(request.getMessage())
                     .user(appUser)

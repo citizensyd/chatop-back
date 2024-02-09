@@ -20,8 +20,6 @@ public class SecurityConfiguration {
 
     private final AuthenticationProvider authenticationProvider;
 
-    //  private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
-
     private static final String[] NO_AUTHENTICATION = {
             "/api/auth/**",
             "/api/auth/login",
@@ -50,10 +48,7 @@ public class SecurityConfiguration {
                         .anyRequest()
                         .authenticated()
                 )
-                .authenticationProvider(authenticationProvider) /*
-                .exceptionHandling((exceptions) -> exceptions
-                        .authenticationEntryPoint(customAuthenticationEntryPoint)
-                )*/
+                .authenticationProvider(authenticationProvider)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }

@@ -53,14 +53,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
-        String path = request.getRequestURI();
-        // Utilisez les mêmes chemins que ceux définis dans AUTHENTICATION_NEEDED_ROUTES
-        return Arrays.stream(WHITELISTED_PATHS).anyMatch(path::startsWith);
+        return Arrays.stream(WHITELISTED_PATHS).anyMatch(request.getRequestURI()::startsWith);
     }
 
     private String convertObjectToJson(Object object) throws IOException {
-        ObjectMapper objectMapper = new ObjectMapper();
-        return objectMapper.writeValueAsString(object);
+        return new ObjectMapper().writeValueAsString(object);
     }
 
     @Override
