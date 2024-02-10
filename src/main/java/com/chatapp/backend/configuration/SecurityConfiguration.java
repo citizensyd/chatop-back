@@ -21,7 +21,6 @@ public class SecurityConfiguration {
     private final AuthenticationProvider authenticationProvider;
 
     private static final String[] NO_AUTHENTICATION = {
-            "/api/auth/**",
             "/api/auth/login",
             "/api/auth/register",
             "/swagger-ui/**",

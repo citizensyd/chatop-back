@@ -86,7 +86,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
      *    "/v3/api-docs" - Matches exact URI "/v3/api-docs"
      */
     private static final String[] WHITELISTED_PATHS = {
-            "/api/auth/**",
             "/api/auth/register",
             "/api/auth/login",
             "/swagger-ui/",
