@@ -40,12 +40,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     /**
      * Extracts the JWT from the Authorization header.
      *
-     * @param authHeader The Authorization header containing the JWT.
-     * @return The extracted JWT string.
+     * @param authHeader The Authorization header value.
+     * @return The extracted JWT.
+     * @throws IllegalArgumentException If the Authorization header is invalid or missing.
      */
     private String extractJwtFromHeader(String authHeader) {
-        return authHeader.substring(7);
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            if (authHeader.length() > 7) {
+                return authHeader.substring(7);
+            } else {
+                throw new IllegalArgumentException("Invalid Authorization header");
+            }
+        } else {
+            throw new IllegalArgumentException("Invalid Authorization header");
+        }
     }
+
 
     /**
      * This method loads the user details based on the provided user email.
