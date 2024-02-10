@@ -123,28 +123,33 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     ) throws ServletException, IOException {
         final String authHeader = request.getHeader("Authorization");
         try {
-            if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                String jwt = extractJwtFromHeader(authHeader);
-                try {
-                    String userEmail = jwtService.extractEmail(jwt);
-                    if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                        UserDetails userDetails = loadUserDetails(userEmail);
-                        if (jwtService.isTokenValid(jwt, userDetails)) {
-                            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                                    userDetails, null, userDetails.getAuthorities());
-                            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                            SecurityContextHolder.getContext().setAuthentication(authToken);
-                        } else {
-                            handleJwtError(response, HttpStatus.BAD_REQUEST, "Bad request, user not retrieve with jwt provided");
-                            return;
+            if (authHeader != null) {
+                if (authHeader.startsWith("Bearer ")) {
+                    String jwt = extractJwtFromHeader(authHeader);
+                    try {
+                        String userEmail = jwtService.extractEmail(jwt);
+                        if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                            UserDetails userDetails = loadUserDetails(userEmail);
+                            if (jwtService.isTokenValid(jwt, userDetails)) {
+                                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                                        userDetails, null, userDetails.getAuthorities());
+                                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                                SecurityContextHolder.getContext().setAuthentication(authToken);
+                            } else {
+                                handleJwtError(response, HttpStatus.BAD_REQUEST, "Bad request, user not retrieve with jwt provided");
+                                return;
+                            }
                         }
+                    } catch (Exception e) {
+                        handleJwtError(response, HttpStatus.UNAUTHORIZED, e.getMessage());
+                        return;
                     }
-                } catch (Exception e) {
-                    handleJwtError(response, HttpStatus.UNAUTHORIZED, e.getMessage());
+                } else {
+                    handleJwtError(response, HttpStatus.BAD_REQUEST, "Invalid Authorization header: Missing 'Bearer' prefix");
                     return;
                 }
-            } else if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                handleJwtError(response, HttpStatus.BAD_REQUEST, "Token is missing.");
+            } else {
+                handleJwtError(response, HttpStatus.BAD_REQUEST, "Authorization header is missing");
                 return;
             }
         } catch (Exception e) {
