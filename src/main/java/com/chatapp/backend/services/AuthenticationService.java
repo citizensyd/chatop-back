@@ -11,6 +11,8 @@ import com.chatapp.backend.exceptions.InvalidCredentialsException;
 import com.chatapp.backend.repository.UserRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -26,6 +28,8 @@ import java.time.LocalDateTime;
 @Service
 @RequiredArgsConstructor
 public class AuthenticationService {
+
+    private static final Logger logger = LoggerFactory.getLogger(AuthenticationService.class);
 
     private final UserRepository repository;
 
@@ -48,6 +52,7 @@ public class AuthenticationService {
      */
     public AuthResponse register(RegisterRequest request) {
         if (repository.findByEmail(request.getEmail()).isPresent()) {
+            logger.warn("Tentative d'enregistrement avec un email déjà utilisé : {}", request.getEmail());
             throw new EmailAlreadyUsedException("Email is already in use");
         }
 
@@ -62,10 +67,12 @@ public class AuthenticationService {
                     .build();
             repository.save(user);
             var jwtToken = jwtService.generateToken(user);
+            logger.info("Nouvel utilisateur enregistré avec succès : {}", user.getEmail());
             return AuthResponse.builder()
                     .token(jwtToken)
                     .build();
         } catch (DataIntegrityViolationException e) {
+            logger.error("Erreur lors de l'enregistrement de l'utilisateur", e);
             throw new DatabaseErrorException("Failed to register user due to a database error");
         }
     }
@@ -86,7 +93,9 @@ public class AuthenticationService {
                             request.getPassword()
                     )
             );
+            logger.info("Authentification réussie pour l'email : {}", request.getLogin());
         } catch (AuthenticationException e) {
+            logger.error("Échec de l'authentification pour l'email : {}", request.getLogin(), e);
             throw new InvalidCredentialsException("Invalid email or password.");
         }
 
@@ -94,6 +103,7 @@ public class AuthenticationService {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + request.getLogin()));
 
         var jwtToken = jwtService.generateToken(user);
+        logger.info("Token JWT généré pour l'utilisateur : {}", request.getLogin());
         return AuthResponse.builder()
                 .token(jwtToken)
                 .build();
