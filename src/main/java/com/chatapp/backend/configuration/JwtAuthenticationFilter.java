@@ -34,15 +34,45 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JWTservice jwtService;
 
+    private final ObjectMapper objectMapper;
 
+
+    /**
+     * Extracts the JWT from the Authorization header.
+     *
+     * @param authHeader The Authorization header containing the JWT.
+     * @return The extracted JWT string.
+     */
     private String extractJwtFromHeader(String authHeader) {
         return authHeader.substring(7);
     }
 
+    /**
+     * This method loads the user details based on the provided user email.
+     *
+     * @param userEmail The email of the user whose details are to be loaded.
+     * @return The user details.
+     */
     private UserDetails loadUserDetails(String userEmail) {
         return this.userDetailsService.loadUserByUsername(userEmail);
     }
 
+    /**
+     * This constant variable represents a list of whitelisted paths that should not be filtered by
+     * the JwtAuthenticationFilter.
+     *
+     * The paths are represented by URI patterns. The filter will check if the request URI starts
+     * with any of the whitelisted paths in this array. If it does, the request will not be filtered
+     * and will be allowed to proceed.
+     *
+     * Example:
+     *
+     *    "/api/auth/**" - Matches any URI that starts with "/api/auth/"
+     *    "/api/auth/register" - Matches exact URI "/api/auth/register"
+     *    "/api/auth/login" - Matches exact URI "/api/auth/login"
+     *    "/swagger-ui/" - Matches exact URI "/swagger-ui/"
+     *    "/v3/api-docs" - Matches exact URI "/v3/api-docs"
+     */
     private static final String[] WHITELISTED_PATHS = {
             "/api/auth/**",
             "/api/auth/register",
@@ -51,14 +81,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             "/v3/api-docs",
     };
 
+    /**
+     * Determines whether the given request should not be filtered.
+     *
+     * @param request The HTTP request.
+     * @return True if the request URI starts with any of the whitelisted paths specified in the WHITELISTED_PATHS array, false otherwise.
+     * @throws ServletException If an error occurs while processing the request.
+     */
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         return Arrays.stream(WHITELISTED_PATHS).anyMatch(request.getRequestURI()::startsWith);
     }
 
+    /**
+     * Converts an object to a JSON string.
+     *
+     * @param object The object to convert.
+     * @return The JSON string representation of the object.
+     * @throws IOException If an error occurs while converting the object to JSON.
+     */
     private String convertObjectToJson(Object object) throws IOException {
-        return new ObjectMapper().writeValueAsString(object);
+        return objectMapper.writeValueAsString(object);
     }
+
 
     @Override
     protected void doFilterInternal(
@@ -80,37 +125,32 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                             SecurityContextHolder.getContext().setAuthentication(authToken);
                         } else {
-                            handleJwtErrorBad(response, "Bad request, user not retrieve with jwt provided");
+                            handleJwtError(response, HttpStatus.BAD_REQUEST, "Bad request, user not retrieve with jwt provided");
                             return;
                         }
                     }
                 } catch (Exception e) {
-                    handleJwtError(response, e.getMessage());
+                    handleJwtError(response, HttpStatus.UNAUTHORIZED, e.getMessage());
                     return;
                 }
             } else if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                handleJwtErrorBad(response, "Token is missing.");
+                handleJwtError(response, HttpStatus.BAD_REQUEST, "Token is missing.");
                 return;
             }
         } catch (Exception e) {
-            handleJwtError(response, "Invalid token.");
+            handleJwtError(response, HttpStatus.UNAUTHORIZED, "Invalid token.");
             return;
         }
         filterChain.doFilter(request, response);
     }
 
-    private void handleJwtErrorBad(HttpServletResponse response, String message) throws IOException {
-        CustomErrorResponse errorResponse = new CustomErrorResponse(HttpStatus.BAD_REQUEST, message);
-        response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+
+    private void handleJwtError(HttpServletResponse response, HttpStatus status, String message) throws IOException {
+        CustomErrorResponse errorResponse = new CustomErrorResponse(status, message);
+        response.setStatus(status.value());
         response.setContentType("application/json");
         response.getWriter().write(convertObjectToJson(errorResponse));
     }
 
-    private void handleJwtError(HttpServletResponse response, String message) throws IOException {
-        CustomErrorResponse errorResponse = new CustomErrorResponse(HttpStatus.UNAUTHORIZED, message);
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        response.setContentType("application/json");
-        response.getWriter().write(convertObjectToJson(errorResponse));
-    }
 
 }
