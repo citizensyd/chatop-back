@@ -1,10 +1,12 @@
 package com.chatapp.backend.configuration;
 
+import com.auth0.jwt.exceptions.TokenExpiredException;
 import com.chatapp.backend.DTO.CustomErrorResponse;
 import com.chatapp.backend.exceptions.JwtAuthenticationException;
 import com.chatapp.backend.exceptions.TokenNotFoundException;
 import com.chatapp.backend.services.JWTservice;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.jsonwebtoken.MalformedJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -140,8 +142,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                 return;
                             }
                         }
-                    } catch (Exception e) {
-                        handleJwtError(response, HttpStatus.UNAUTHORIZED, e.getMessage());
+                    } catch (TokenExpiredException e) {
+                        handleJwtError(response, HttpStatus.UNAUTHORIZED, "Token expired.");
+                        return;
+                    } catch (MalformedJwtException e) {
+                        handleJwtError(response, HttpStatus.UNAUTHORIZED, "Malformed token.");
                         return;
                     }
                 } else {
@@ -158,6 +163,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
         filterChain.doFilter(request, response);
     }
+
 
 
     private void handleJwtError(HttpServletResponse response, HttpStatus status, String message) throws IOException {
