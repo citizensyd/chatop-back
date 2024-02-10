@@ -127,25 +127,30 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (authHeader != null) {
                 if (authHeader.startsWith("Bearer ")) {
                     String jwt = extractJwtFromHeader(authHeader);
-                    try {
-                        String userEmail = jwtService.extractEmail(jwt);
-                        if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                            UserDetails userDetails = loadUserDetails(userEmail);
-                            if (jwtService.isTokenValid(jwt, userDetails)) {
-                                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                                        userDetails, null, userDetails.getAuthorities());
-                                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                                SecurityContextHolder.getContext().setAuthentication(authToken);
-                            } else {
-                                handleJwtError(response, HttpStatus.BAD_REQUEST, "Bad request, user not retrieve with jwt provided");
-                                return;
+                    if (jwt != null) {
+                        try {
+                            String userEmail = jwtService.extractEmail(jwt);
+                            if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                                UserDetails userDetails = loadUserDetails(userEmail);
+                                if (jwtService.isTokenValid(jwt, userDetails)) {
+                                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                                            userDetails, null, userDetails.getAuthorities());
+                                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                                } else {
+                                    handleJwtError(response, HttpStatus.BAD_REQUEST, "Bad request, user not retrieve with jwt provided");
+                                    return;
+                                }
                             }
+                        } catch (TokenExpiredException e) {
+                            handleJwtError(response, HttpStatus.UNAUTHORIZED, "Token expired.");
+                            return;
+                        } catch (MalformedJwtException e) {
+                            handleJwtError(response, HttpStatus.UNAUTHORIZED, "Malformed token.");
+                            return;
                         }
-                    } catch (TokenExpiredException e) {
-                        handleJwtError(response, HttpStatus.UNAUTHORIZED, "Token expired.");
-                        return;
-                    } catch (MalformedJwtException e) {
-                        handleJwtError(response, HttpStatus.UNAUTHORIZED, "Malformed token.");
+                    } else {
+                        handleJwtError(response, HttpStatus.BAD_REQUEST, "Invalid Authorization header: Missing 'Bearer' prefix");
                         return;
                     }
                 } else {
