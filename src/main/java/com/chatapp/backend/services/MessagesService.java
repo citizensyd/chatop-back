@@ -40,14 +40,14 @@ public class MessagesService {
             Optional<User> optionalAppUser = userRepository.findByEmail(userDetails.getUsername());
             if (!optionalAppUser.isPresent()) {
                 return MessageResponse.builder()
-                        .status("Utilisateur non trouvé")
+                        .message("Utilisateur non trouvé")
                         .build();
             }
             User appUser = optionalAppUser.get();
             Optional<Rental> optionalRental = rentalRepository.findById(Math.toIntExact(request.getRental_id()));
             if (!optionalRental.isPresent()) {
                 return MessageResponse.builder()
-                        .status("Location non trouvée")
+                        .message("Location non trouvée")
                         .build();
             }
             Rental rental = optionalRental.get();
@@ -59,12 +59,11 @@ public class MessagesService {
             this.messageRepository.save(message);
 
             return MessageResponse.builder()
-                    .id(Math.toIntExact(message.getId()))
-                    .status("Message envoyé avec succès")
+                    .message("Message envoyé avec succès")
                     .build();
         } else {
             return MessageResponse.builder()
-                    .status("Échec de l'authentification")
+                    .message("Échec de l'authentification")
                     .build();
         }
     }
