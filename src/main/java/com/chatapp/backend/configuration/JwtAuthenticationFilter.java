@@ -70,27 +70,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     /**
-     * This constant variable represents a list of whitelisted paths that should not be filtered by
-     * the JwtAuthenticationFilter.
-     *
-     * The paths are represented by URI patterns. The filter will check if the request URI starts
-     * with any of the whitelisted paths in this array. If it does, the request will not be filtered
-     * and will be allowed to proceed.
-     *
-     * Example:
-     *
-     *    "/api/auth/**" - Matches any URI that starts with "/api/auth/"
-     *    "/api/auth/register" - Matches exact URI "/api/auth/register"
-     *    "/api/auth/login" - Matches exact URI "/api/auth/login"
-     *    "/swagger-ui/" - Matches exact URI "/swagger-ui/"
-     *    "/v3/api-docs" - Matches exact URI "/v3/api-docs"
+     * An array of whitelisted paths.
+     * These paths are allowed to bypass certain authentication checks or filters.
      */
-    private static final String[] WHITELISTED_PATHS = {
-            "/api/auth/register",
-            "/api/auth/login",
-            "/swagger-ui/",
-            "/v3/api-docs",
-    };
+    private static final String[] WHITELISTED_PATHS = {"/api/auth/register", "/api/auth/login", "/swagger-ui/", "/v3/api-docs",};
 
     /**
      * Determines whether the given request should not be filtered.
@@ -117,59 +100,71 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 
     @Override
-    protected void doFilterInternal(
-            @NonNull HttpServletRequest request,
-            @NonNull HttpServletResponse response,
-            @NonNull FilterChain filterChain
-    ) throws ServletException, IOException {
+    protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain) throws ServletException, IOException {
         final String authHeader = request.getHeader("Authorization");
         try {
-            if (authHeader != null) {
-                if (authHeader.startsWith("Bearer ")) {
-                    String jwt = extractJwtFromHeader(authHeader);
-                    if (jwt != null) {
-                        try {
-                            String userEmail = jwtService.extractEmail(jwt);
-                            if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                                UserDetails userDetails = loadUserDetails(userEmail);
-                                if (jwtService.isTokenValid(jwt, userDetails)) {
-                                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                                            userDetails, null, userDetails.getAuthorities());
-                                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                                    SecurityContextHolder.getContext().setAuthentication(authToken);
-                                } else {
-                                    handleJwtError(response, HttpStatus.BAD_REQUEST, "Bad request, user not retrieve with jwt provided");
-                                    return;
-                                }
-                            }
-                        } catch (TokenExpiredException e) {
-                            handleJwtError(response, HttpStatus.UNAUTHORIZED, "Token expired.");
-                            return;
-                        } catch (MalformedJwtException e) {
-                            handleJwtError(response, HttpStatus.UNAUTHORIZED, "Malformed token.");
-                            return;
-                        }
-                    } else {
-                        handleJwtError(response, HttpStatus.BAD_REQUEST, "Invalid Authorization header: Missing 'Bearer' prefix");
-                        return;
-                    }
-                } else {
-                    handleJwtError(response, HttpStatus.BAD_REQUEST, "Invalid Authorization header: Missing 'Bearer' prefix");
-                    return;
-                }
-            } else {
-                handleJwtError(response, HttpStatus.BAD_REQUEST, "Authorization header is missing");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                handleJwtError(response, HttpStatus.BAD_REQUEST, "Invalid or missing Authorization header: 'Bearer' prefix is required");
                 return;
             }
+
+            String jwt = extractJwtFromHeader(authHeader);
+
+            String userEmail = jwtService.extractEmail(jwt);
+
+            if (userEmail == null) {
+                handleJwtError(response, HttpStatus.UNAUTHORIZED, "Invalid token: Missing user email");
+                return;
+            }
+
+            UserDetails userDetails = loadUserDetails(userEmail);
+
+            if (userDetails == null) {
+                handleJwtError(response, HttpStatus.UNAUTHORIZED, "Invalid token: User details not found");
+                return;
+            }
+
+            if (!jwtService.isTokenValid(jwt, userDetails)) {
+                handleJwtError(response, HttpStatus.UNAUTHORIZED, "Invalid token: Token is not valid");
+                return;
+            }
+
+// Crée un nouvel objet UsernamePasswordAuthenticationToken pour représenter l'authentification de l'utilisateur
+// userDetails : les détails de l'utilisateur récupérés à partir du token JWT
+// null : les informations de nom d'utilisateur et de mot de passe (non utilisées dans le contexte JWT)
+// userDetails.getAuthorities() : les autorisations de l'utilisateur obtenues à partir des détails de l'utilisateur
+            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+
+// Configure les détails d'authentification à partir de la requête HTTP actuelle
+// Ces détails peuvent inclure des informations telles que l'adresse IP de la demande ou les informations du navigateur
+            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+// Définit l'objet d'authentification nouvellement créé dans le contexte de sécurité de Spring
+// Ceci authentifie effectivement l'utilisateur pour la session en cours
+            SecurityContextHolder.getContext().setAuthentication(authToken);
+
+        } catch (TokenExpiredException e) {
+            handleJwtError(response, HttpStatus.UNAUTHORIZED, "Token expired");
+            return;
+        } catch (MalformedJwtException e) {
+            handleJwtError(response, HttpStatus.UNAUTHORIZED, "Malformed token");
+            return;
         } catch (Exception e) {
-            handleJwtError(response, HttpStatus.UNAUTHORIZED, "Invalid token.");
+            handleJwtError(response, HttpStatus.UNAUTHORIZED, "Invalid token");
             return;
         }
         filterChain.doFilter(request, response);
     }
 
 
-
+    /**
+     * Handles JWT errors by creating a custom error response and sending it to the client.
+     *
+     * @param response The HttpServletResponse object used to send the error response.
+     * @param status The HTTP status code of the error.
+     * @param message The error message to be displayed.
+     * @throws IOException If an error occurs while writing the error response.
+     */
     private void handleJwtError(HttpServletResponse response, HttpStatus status, String message) throws IOException {
         CustomErrorResponse errorResponse = new CustomErrorResponse(status, message);
         response.setStatus(status.value());
