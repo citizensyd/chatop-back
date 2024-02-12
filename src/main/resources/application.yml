@@ -5,6 +5,9 @@ logging:
         security: DEBUG
         boot:
           autoconfigure: ERROR
+    com:
+      chatapp:
+        backend: INFO
 server:
   port: 3001
 

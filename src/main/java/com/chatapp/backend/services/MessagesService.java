@@ -27,9 +27,6 @@ public class MessagesService {
     private final UserRepository userRepository;
     private final RentalRepository rentalRepository;
 
-
-
-
     /**
      * Creates a new message.
      *
@@ -37,28 +34,23 @@ public class MessagesService {
      * @return The message response object.
      */
     public MessageResponse createMessage(MessageRequest request) {
-        System.out.println("Service createMessage");
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
             Optional<User> optionalAppUser = userRepository.findByEmail(userDetails.getUsername());
             if (!optionalAppUser.isPresent()) {
                 return MessageResponse.builder()
-                        .status("Utilisateur non trouvé")
+                        .message("Utilisateur non trouvé")
                         .build();
             }
             User appUser = optionalAppUser.get();
-            System.out.println("ligne 41 message Service");
-            System.out.println(appUser);
             Optional<Rental> optionalRental = rentalRepository.findById(Math.toIntExact(request.getRental_id()));
             if (!optionalRental.isPresent()) {
                 return MessageResponse.builder()
-                        .status("Location non trouvée")
+                        .message("Location non trouvée")
                         .build();
             }
             Rental rental = optionalRental.get();
-            System.out.println("ligne 49 rental Service");
-            System.out.println(rental);
             var message = Message.builder()
                     .message(request.getMessage())
                     .user(appUser)
@@ -67,12 +59,11 @@ public class MessagesService {
             this.messageRepository.save(message);
 
             return MessageResponse.builder()
-                    .id(Math.toIntExact(message.getId()))
-                    .status("Message envoyé avec succès")
+                    .message("Message envoyé avec succès")
                     .build();
         } else {
             return MessageResponse.builder()
-                    .status("Échec de l'authentification")
+                    .message("Échec de l'authentification")
                     .build();
         }
     }

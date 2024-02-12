@@ -52,29 +52,30 @@ public class RentalController {
 
 
     /**
-     * Creates a new rental object.
+     * Creates a rental based on the provided rental request and file.
      *
-     * @param name The name of the rental.
-     * @param surface The surface area of the rental.
-     * @param price The price of the rental.
-     * @param description The description of the rental.
-     * @param picture The picture of the rental.
-     * @return A ResponseEntity object containing the created RentalResponse object.
-     * @throws IOException If an input/output error occurs.
+     * @param name        The name of the rental property.
+     * @param surface     The surface area of the rental property.
+     * @param price       The price of the rental property.
+     * @param description The description of the rental property.
+     * @param file        The file to be uploaded and utilized for the rental property.
+     * @return A ResponseEntity object containing the RentalResponse object indicating the status of the operation.
+     * @throws IOException If there is an error during file upload.
      */
-    @PostMapping("/create")
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+
     public ResponseEntity<RentalResponse> create(
             @RequestParam("name") String name,
             @RequestParam("surface") int surface,
             @RequestParam("price") int price,
             @RequestParam("description") String description,
-            @RequestPart("picture") MultipartFile picture) throws IOException {
+            @RequestPart("file") MultipartFile file) throws IOException {
         RentalRequest request = new RentalRequest();
         request.setName(name);
         request.setSurface(surface);
         request.setPrice(price);
         request.setDescription(description);
-        return ResponseEntity.ok(service.createRental(request, picture));
+        return ResponseEntity.ok(service.createRental(request, file));
     }
 
     /**

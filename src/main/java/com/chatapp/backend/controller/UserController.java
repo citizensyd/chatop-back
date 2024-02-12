@@ -38,7 +38,7 @@ public class UserController {
             User user = userService.getUserById(Math.toIntExact(id));
             if (user != null) {
                 Map<String, String> userInfo = new HashMap<>();
-                userInfo.put("username", user.getUsername());
+                userInfo.put("name", user.getName());
                 userInfo.put("email", user.getEmail());
                 return ResponseEntity.ok(userInfo);
             } else {

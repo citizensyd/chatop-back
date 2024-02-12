@@ -40,6 +40,73 @@ Skills Evaluated
 
 This project is a comprehensive exercise in back-end development, offering a chance to collaborate with a front-end team and demonstrate your ability to present your work effectively. Successfully completing this project will showcase your skills in creating a robust and secure back-end for a web application in a professional development setting.
 
+## 📂 Repository Structure
+```
+
+├───build
+│   ├───classes
+│   │   └───java
+│   │       └───main
+│   │           └───com
+│   │               └───chatapp
+│   │                   └───backend
+│   │                       ├───configuration
+|   |                           AppConfig.java
+|   |                           ApplicationConfig.java
+|   |                           CloudinaryConfig.java
+|   |                           JwtAuthenticationFilter.java
+|   |                           SecurityConfiguration.java
+│   │                       ├───controller
+|   |                           GlobalExceptionHandIer.java
+|   |                           LoginControIIer.java
+|   |                           MeControIIer.java
+|   |                           MessageControIIer.java
+|   |                           Registercontroller.java
+|   |                           RentalController.java
+|   |                           UserControIIer.java
+│   │                       ├───DTO
+|   |                           AuthRequest.java
+|   |                           AuthResponse.java
+|   |                           CustomErrorResponse.java
+|   |                           GetA11Renta1s.java
+|   |                           JwtResponse.java
+|   |                           LoginRequest.java
+|   |                           MessageRequest.java
+|   |                           MessageResponse.java
+|   |                           RegisterRequest.java
+|   |                           RentalDT0.java
+|   |                           RentalRequest.java
+|   |                           RentalResponse.java
+|   |                           RentalsResponse.java
+|   |                           UpdateUserRequest.java
+│   │                       ├───entity
+|   |                           Message.java
+|   |                           Rental.java
+|   |                           Role.java
+|   |                           User.java
+│   │                       ├───exceptions
+|   |                           DatabaseErrorException.java
+|   |                           EmailA1readyUsedException.java
+|   |                           InvalidCredentialsException.java
+|   |                           JwtAuthenticationException.java
+|   |                           ResourceNotFoundException.java
+|   |                           TokenNotFoundException.java
+│   │                       ├───repository
+|   |                           MessageRepository.java
+|   |                           Renta1Repository.java
+|   |                           UserRepository.java
+│   │                       ├───services
+|   |                           AuthenticationService.java
+|   |                           CloudinaryService.java
+|   |                           JWTservice.java
+|   |                           MessagesService.java
+|   |                           Renta1Service.java
+|   |                           UserService.java
+│   │                       └───Util
+|   |                           SuccessResponse.java
+
+
+```
 ## 🚀 Getting Started
 
 ***Dependencies***

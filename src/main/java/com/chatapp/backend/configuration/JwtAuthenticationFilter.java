@@ -1,10 +1,12 @@
 package com.chatapp.backend.configuration;
 
+import com.auth0.jwt.exceptions.TokenExpiredException;
 import com.chatapp.backend.DTO.CustomErrorResponse;
 import com.chatapp.backend.exceptions.JwtAuthenticationException;
 import com.chatapp.backend.exceptions.TokenNotFoundException;
 import com.chatapp.backend.services.JWTservice;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.jsonwebtoken.MalformedJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -34,106 +36,141 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JWTservice jwtService;
 
+    private final ObjectMapper objectMapper;
 
+
+    /**
+     * Extracts the JWT from the Authorization header.
+     *
+     * @param authHeader The Authorization header value.
+     * @return The extracted JWT.
+     * @throws IllegalArgumentException If the Authorization header is invalid or missing.
+     */
     private String extractJwtFromHeader(String authHeader) {
-        return authHeader.substring(7);
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            if (authHeader.length() > 7) {
+                return authHeader.substring(7);
+            } else {
+                throw new IllegalArgumentException("Invalid Authorization header");
+            }
+        } else {
+            throw new IllegalArgumentException("Invalid Authorization header");
+        }
     }
 
+
+    /**
+     * This method loads the user details based on the provided user email.
+     *
+     * @param userEmail The email of the user whose details are to be loaded.
+     * @return The user details.
+     */
     private UserDetails loadUserDetails(String userEmail) {
         return this.userDetailsService.loadUserByUsername(userEmail);
     }
 
-    private static final String[] WHITELISTED_PATHS = {
-            "/api/auth/**",
-            "/api/auth/register",
-            "/images/**",
-            "/api-docs",
-            "/api/auth/login",
-            "/swagger.html",
-            "/v3/api-docs/**",
-            "/swagger-ui/**",
-            "/swagger-ui-custom.html",
-            "/swagger",
-            "/authenticate",
-            "/swagger-resources/",
-            "/swagger-ui/",
-            "/v3/api-docs/",
-            "/api/v1/app/user/auth/",
-            "/swagger.html",
-            "/swagger-ui/index.html",
-            "/v3/api-docs",
-            "/v3/api-docs",
-            "/swagger-ui.html",
-            "/swagger-ui/**",
-            "/swagger-ui/index.html",
-            "/swagger-config/**",
-            "/v3/api-docs/**",
-            "/v3/api-docs/swagger-config"
-    };
+    /**
+     * An array of whitelisted paths.
+     * These paths are allowed to bypass certain authentication checks or filters.
+     */
+    private static final String[] WHITELISTED_PATHS = {"/api/auth/register", "/api/auth/login", "/swagger-ui/", "/v3/api-docs",};
 
+    /**
+     * Determines whether the given request should not be filtered.
+     *
+     * @param request The HTTP request.
+     * @return True if the request URI starts with any of the whitelisted paths specified in the WHITELISTED_PATHS array, false otherwise.
+     * @throws ServletException If an error occurs while processing the request.
+     */
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
-        String path = request.getRequestURI();
-        // Utilisez les mêmes chemins que ceux définis dans AUTHENTICATION_NEEDED_ROUTES
-        return Arrays.stream(WHITELISTED_PATHS).anyMatch(path::startsWith);
+        return Arrays.stream(WHITELISTED_PATHS).anyMatch(request.getRequestURI()::startsWith);
     }
 
+    /**
+     * Converts an object to a JSON string.
+     *
+     * @param object The object to convert.
+     * @return The JSON string representation of the object.
+     * @throws IOException If an error occurs while converting the object to JSON.
+     */
     private String convertObjectToJson(Object object) throws IOException {
-        ObjectMapper objectMapper = new ObjectMapper();
         return objectMapper.writeValueAsString(object);
     }
 
+
     @Override
-    protected void doFilterInternal(
-            @NonNull HttpServletRequest request,
-            @NonNull HttpServletResponse response,
-            @NonNull FilterChain filterChain
-    ) throws ServletException, IOException {
+    protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain) throws ServletException, IOException {
         final String authHeader = request.getHeader("Authorization");
         try {
-            if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                String jwt = extractJwtFromHeader(authHeader);
-                try {
-                    String userEmail = jwtService.extractEmail(jwt);
-                    if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                        UserDetails userDetails = loadUserDetails(userEmail);
-                        if (jwtService.isTokenValid(jwt, userDetails)) {
-                            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                                    userDetails, null, userDetails.getAuthorities());
-                            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                            SecurityContextHolder.getContext().setAuthentication(authToken);
-                        } else {
-                            handleJwtErrorBad(response, "Bad request, user not retrieve with jwt provided");
-                            return;
-                        }
-                    }
-                } catch (Exception e) {
-                    handleJwtError(response, e.getMessage());
-                    return;
-                }
-            } else if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                handleJwtErrorBad(response, "Token is missing.");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                handleJwtError(response, HttpStatus.BAD_REQUEST, "Invalid or missing Authorization header: 'Bearer' prefix is required");
                 return;
             }
+
+            String jwt = extractJwtFromHeader(authHeader);
+
+            String userEmail = jwtService.extractEmail(jwt);
+
+            if (userEmail == null) {
+                handleJwtError(response, HttpStatus.UNAUTHORIZED, "Invalid token: Missing user email");
+                return;
+            }
+
+            UserDetails userDetails = loadUserDetails(userEmail);
+
+            if (userDetails == null) {
+                handleJwtError(response, HttpStatus.UNAUTHORIZED, "Invalid token: User details not found");
+                return;
+            }
+
+            if (!jwtService.isTokenValid(jwt, userDetails)) {
+                handleJwtError(response, HttpStatus.UNAUTHORIZED, "Invalid token: Token is not valid");
+                return;
+            }
+
+// Crée un nouvel objet UsernamePasswordAuthenticationToken pour représenter l'authentification de l'utilisateur
+// userDetails : les détails de l'utilisateur récupérés à partir du token JWT
+// null : les informations de nom d'utilisateur et de mot de passe (non utilisées dans le contexte JWT)
+// userDetails.getAuthorities() : les autorisations de l'utilisateur obtenues à partir des détails de l'utilisateur
+            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+
+// Configure les détails d'authentification à partir de la requête HTTP actuelle
+// Ces détails peuvent inclure des informations telles que l'adresse IP de la demande ou les informations du navigateur
+            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+// Définit l'objet d'authentification nouvellement créé dans le contexte de sécurité de Spring
+// Ceci authentifie effectivement l'utilisateur pour la session en cours
+            SecurityContextHolder.getContext().setAuthentication(authToken);
+
+        } catch (TokenExpiredException e) {
+            handleJwtError(response, HttpStatus.UNAUTHORIZED, "Token expired");
+            return;
+        } catch (MalformedJwtException e) {
+            handleJwtError(response, HttpStatus.UNAUTHORIZED, "Malformed token");
+            return;
         } catch (Exception e) {
-            handleJwtError(response, "Invalid token.");
+            handleJwtError(response, HttpStatus.UNAUTHORIZED, "Invalid token");
             return;
         }
         filterChain.doFilter(request, response);
     }
 
-    private void handleJwtErrorBad(HttpServletResponse response, String message) throws IOException {
-        CustomErrorResponse errorResponse = new CustomErrorResponse(HttpStatus.BAD_REQUEST, message);
-        response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+
+    /**
+     * Handles JWT errors by creating a custom error response and sending it to the client.
+     *
+     * @param response The HttpServletResponse object used to send the error response.
+     * @param status The HTTP status code of the error.
+     * @param message The error message to be displayed.
+     * @throws IOException If an error occurs while writing the error response.
+     */
+    private void handleJwtError(HttpServletResponse response, HttpStatus status, String message) throws IOException {
+        CustomErrorResponse errorResponse = new CustomErrorResponse(status, message);
+        response.setStatus(status.value());
         response.setContentType("application/json");
         response.getWriter().write(convertObjectToJson(errorResponse));
     }
 
-    private void handleJwtError(HttpServletResponse response, String message) throws IOException {
-        CustomErrorResponse errorResponse = new CustomErrorResponse(HttpStatus.UNAUTHORIZED, message);
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        response.setContentType("application/json");
-        response.getWriter().write(convertObjectToJson(errorResponse));
-    }
 
 }
